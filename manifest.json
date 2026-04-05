@@ -1,0 +1,14 @@
+{
+  "name": "JHB City SDA Church",
+  "short_name": "City Church",
+  "description": "Johannesburg City SDA Church Bulletin & Announcements",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#faf7f0",
+  "theme_color": "#1a472a",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
