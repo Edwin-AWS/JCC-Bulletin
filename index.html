@@ -53,9 +53,9 @@
   .tab.active{color:var(--gold);border-bottom-color:var(--gold);}
 
   /* ── SWIPE CONTAINER ── */
-  .swipe-wrapper{display:flex;overflow:hidden;width:100%;}
+  .swipe-wrapper{display:flex;overflow:hidden;width:100%;position:relative;}
   .swipe-track{display:flex;width:400%;transition:transform .3s cubic-bezier(.4,0,.2,1);will-change:transform;}
-  .section{flex:0 0 25%;min-height:60vh;}/* 4 tabs → each 25% */
+  .section{flex:0 0 25%;width:25%;min-height:60vh;overflow:hidden;}
   .content-inner{padding:16px;max-width:480px;margin:0 auto;}
 
   /* ── CARDS ── */
@@ -235,7 +235,7 @@
 
 <!-- CONFIG -->
 <script>
-const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3ooJYveYJwuZXcApICxU_09cupDtjTKuKIojFzna7MBB73m02FN3bGb7kSMER4Q/pub?output=csv";
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRjWER0OVzw7IkeffhCIvmlHCGTY-KK7ZaaR5XzDPtX39Jh5Zts3U9fg9kqxftjCQ/pub?output=csv";
 const SINGLE_SHEET = false;
 </script>
 
@@ -292,7 +292,7 @@ wrapper.addEventListener("touchend", e=>{
 
 // ── CSV / SHEETS ──
 async function fetchCSV(url){
-  const proxy="https://api.allorigins.win/raw?url="+encodeURIComponent(url);
+  const proxy="https://corsproxy.io/?url="+encodeURIComponent(url);
   const r=await fetch(proxy,{cache:"no-store"});
   if(!r.ok) throw new Error("fetch failed");
   return r.text();
@@ -316,7 +316,7 @@ function parseCSV(csv){
 function sheetTabUrl(base,tab){
   const m=base.match(/spreadsheets\/d\/([^/]+)/);
   if(!m) return base;
-  return `https://docs.google.com/spreadsheets/d/${m[1]}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
+  return `https://docs.google.com/spreadsheets/d/${m[1]}/pub?output=csv&sheet=${encodeURIComponent(tab)}`;
 }
 
 async function loadSheet(){
