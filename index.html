@@ -146,6 +146,7 @@
 <div class="sync-bar loading" id="sync-bar">
   <span><span class="sync-dot"></span><span id="sync-text">Loading from Google Sheets…</span></span>
   <button class="refresh-btn" onclick="loadSheet()">↻ Refresh</button>
+  <button class="refresh-btn" onclick="debugSheet()" title="Show URL in console">🔍 Debug</button>
 </div>
 
 <nav class="tabs" id="tab-nav">
@@ -291,11 +292,29 @@ wrapper.addEventListener("touchend", e=>{
 },{passive:true});
 
 // ── CSV / SHEETS ──
-async function fetchCSV(url){
-  const proxy="https://corsproxy.io/?url="+encodeURIComponent(url);
-  const r=await fetch(proxy,{cache:"no-store"});
-  if(!r.ok) throw new Error("fetch failed");
-  return r.text();
+// Try multiple proxies in order until one works
+const PROXIES = [
+  u => "https://corsproxy.io/?url=" + encodeURIComponent(u),
+  u => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
+  u => "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u),
+  u => u, // direct (works if CORS is open)
+];
+
+async function fetchCSV(url) {
+  let lastErr = "";
+  for (const makeProxy of PROXIES) {
+    try {
+      const proxyUrl = makeProxy(url);
+      const r = await fetch(proxyUrl, { cache: "no-store", signal: AbortSignal.timeout(8000) });
+      if (!r.ok) { lastErr = "HTTP " + r.status; continue; }
+      const text = await r.text();
+      if (!text || text.trim().length < 5) { lastErr = "empty response"; continue; }
+      // Reject HTML error pages from proxies
+      if (text.trim().startsWith("<!")) { lastErr = "got HTML not CSV"; continue; }
+      return text;
+    } catch(e) { lastErr = e.message; }
+  }
+  throw new Error("All proxies failed: " + lastErr);
 }
 function parseCSV(csv){
   const rows=[];
@@ -314,6 +333,10 @@ function parseCSV(csv){
   return rows;
 }
 function sheetTabUrl(base,tab){
+  // Handle published /d/e/ID/ format
+  const mPub=base.match(/spreadsheets\/d\/e\/([^/?]+)/);
+  if(mPub) return `https://docs.google.com/spreadsheets/d/e/${mPub[1]}/pub?output=csv&sheet=${encodeURIComponent(tab)}`;
+  // Handle regular /d/ID/ format
   const m=base.match(/spreadsheets\/d\/([^/]+)/);
   if(!m) return base;
   return `https://docs.google.com/spreadsheets/d/${m[1]}/pub?output=csv&sheet=${encodeURIComponent(tab)}`;
@@ -431,6 +454,26 @@ document.getElementById("install-btn").addEventListener("click",async()=>{
   document.getElementById("install-banner").style.display="none";
   if(outcome==="accepted")showToast("✅ App installed!");
 });
+
+// ── DEBUG ──
+function debugSheet(){
+  if(!SHEET_URL || SHEET_URL.includes("YOUR_GOOGLE")){
+    showToast("❌ No URL set in index.html");
+    return;
+  }
+  const testUrl = sheetTabUrl(SHEET_URL, "config");
+  const msg = "Sheet ID found. Testing config tab…";
+  showToast(msg);
+  // Show full URL in sync bar temporarily
+  setSyncBar("loading", "Testing: " + testUrl.substring(0,60) + "…");
+  fetchCSV(testUrl)
+    .then(t => {
+      const preview = t.substring(0,80).replace(/
+/g," ");
+      setSyncBar("ok", "✅ Raw data: " + preview);
+    })
+    .catch(e => setSyncBar("error", "❌ " + e.message));
+}
 
 // ── INIT ──
 updateTrack(false);
